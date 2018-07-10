@@ -104,14 +104,33 @@ install_github("IMB-Computational-Genomics-Lab/ascend")
 library(ascend)
 ```
 
+#### 1.4 Configuring BiocParallel
+This package makes extensive use of [BiocParallel](http://bioconductor.org/packages/release/bioc/html/BiocParallel.html), enabling `ascend` to make the most of your computer's hardware. As each system is different, BiocParallel needs to be configured by the user. Here are some example configurations.
+
+#### Unix/Linux/MacOS (Single Machine)
+```{r SetupNix, eval = FALSE}
+library(BiocParallel)
+ncores <- parallel::detectCores() - 1
+register(MulticoreParam(workers = ncores, progressbar=TRUE), default = TRUE)
+```
+
+#### Windows (Single Machine - Quad-core system)
+```{r SetupWin, eval = FALSE}
+library(BiocParallel)
+workers <- 3 # Number of cores on your machine - 1
+register(SnowParam(workers = workers, 
+                   type = "SOCK", 
+                   progressbar = TRUE), default = TRUE)
+```
+
 ## 2. Preparing the data for the workshop
 This vignette will use the unprocessed data from the dataset featured in
 the publication [Single cell RNA sequencing of stem cell-derived retinal ganglion cells](https://www.nature.com/articles/sdata201813#data-records) 
 by [Daniszewski et al. 2018]().
 
-This dataset consists of stem cell-derived retina ganglion cells that have been
-separated into THY1-positive and THY1-negative cells via flow cytometry. This 
-protein is a marker for pluripotency.
+This dataset consists of 1272 human embryonic stem cell-derived retina ganglion 
+cells that have been separated into THY1-positive (Sample 1) and THY1-negative 
+(Sample 2) cells via flow cytometry. This protein is a marker for pluripotency.
 
 Please note that this data has been batch equalized with subsampling.
 
@@ -155,14 +174,27 @@ update the metrics everytime this matrix is changed.
 We can review the cell information that is stored in the colInfo slot as follows:
 
 ```{r review_colinfo}
+# Cell-related metadata
 colInfo(em_set)
+
+# Cell-related metrics
+colData(em_set)
+
+# Gene-related metadata
+rowInfo(em_set)
+
+# Gene-related metrics
+rowData(em_set)
 ```
 
-As you can see, the loadCellRanger function has extracted the batch identifiers
-from the cell barcode labels. Batches 1 and 2 refer to THY1-positive and 
-THY1-negative cells, respectively. 
-
 ## 3. Quality Control and Filtering
+This workflow is similar to other scRNA-seq filtering workflows available
+through packages such as `seurat` and `scater`. You can read more about quality 
+control through these links:
+
+1. [Analyzing single-cell RNA-seq data containing UMI counts](https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/work-2-umis.html) by Lun, McCarthy & Marioni 2018
+2. [Cleaning the Expression Matrix](https://hemberg-lab.github.io/scRNA.seq.course/cleaning-the-expression-matrix.html#exprs-qc) by Kiselex, Andrews, McCarthy, Buttner & Hemberg 2018
+
 ### 3.1 Assessing quality of the dataset
 First, we will have a look at the quality of the dataset. Some quality control
 metrics were generated when the EMSet was created; they are stored in the
@@ -172,13 +204,14 @@ visualise these values with quality control plots.
 We can generate all the plots we will need for this step with with the
 plotGeneralQC function.
 
-```{r raw_qc}
+```{r raw_qc_func, fig.show = "hide", results = "hide", include = FALSE}
 qc_plots <- plotGeneralQC(em_set)
 ```
 
-Other resources:
-https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/work-2-umis.html
-https://hemberg-lab.github.io/scRNA.seq.course/cleaning-the-expression-matrix.html#exprs-qc
+```{r raw_qc_show, eval = FALSE}
+qc_plots <- plotGeneralQC(em_set)
+```
+
 
 The two plots below represent metrics related to the total number of UMIs 
 mapped to a cell.
@@ -227,8 +260,25 @@ grid.arrange(qc_plots$control_hists$Mt, qc_plots$control_hists$Rb,
              qc_plots$control_violins$Mt, qc_plots$control_violins$Rb, ncol = 2)
 ```
 
-### 3.2 Filtering low quality cells from the dataset
-[Something about workflow...]
+### 3.2 Batch normalisation
+Before we start filtering, we need to normalise the counts between the two 
+batches to account for technical variations. The read counts have already been 
+normalised already via the Cell Ranger pipeline's subsampling method. 
+This batch normalisation method scales UMI counts between batches.
+
+```{r batchNorm}
+em_set <- normaliseBatches(em_set)
+```
+
+### 3.3 Filtering low quality cells from the dataset
+There are three filtering functions in the `ascend` package. 
+
+1. `filterByOutliers` removes outliers in terms of library size and control
+expression based on median absolute deviation (MAD).
+2. `filterByControl` removes cells where genes in the specified control group
+account for more than the specified percentage of expression.
+3. `filterLowAbundanceGenes` removes genes that are expressed in less than
+the specified percentage of cells.
 
 ```{r filter_data}
 # Filter library size and controls by MAD
@@ -264,8 +314,215 @@ grid.arrange(filtered_qc_plots$libsize_barplot, filtered_qc_plots$libsize_histog
 ```
 
 ### 4. Normalisation of data
-We will normalise the data by Relative Log Expression.
+`ascend` offers a normalisation method based on Relative Log Expression. This 
+is the method used by DESeq to normalise counts, but has been adapated for 
+zero-inflated data.
+
+In this method, each cell is considered as one library and assumes that most 
+genes are not differentially expressed. It uses gene expression values higher 
+than 0 to calculate the geometric means of a gene. The geometric mean is the
+mean of the expression of the gene across all cells (for cells where the gene is 
+detected). Each gene has one geometric mean value for all cell. For each cell,
+the gene expression values are divided by the geometric means to get one 
+normalisation factor for a gene in that cell. The median of all the 
+normalisation factors for all genes in that cell is the normalisation factor for 
+the cell. 
+
+Post RLE normalisation, a gene with 0 expression still has 0 expression. A gene 
+with expression higher than 0 will have an expression value equal the raw expression 
+divided by the calculated normalization factor for the cell.
+
 ```{r NormaliseByRLE}
 norm_set <- normaliseByRLE(filtered_set)
+```
+
+Original counts are retained in the EMSet. Normalised counts and log-transformed
+normalised counts are stored in the EMSet as well, accessible via the 
+`normcounts` and `logcounts` accessors from the SingleCellExperiment class.
+
+```{r reviewnorm}
+# Raw counts
+counts(norm_set)[1:5,1:5]
+
+# Normalised counts
+normcounts(norm_set)[1:5,1:5]
+
+# Log2(counts) + 1
+logcounts(norm_set)[1:5, 1:5]
+```
+
+We can generate some plots to review the impact of normalisation on the dataset.
+
+```{r generateNormPlots}
 norm_qc <- plotNormQC(norm_set)
+```
+
+This set of plots depict the library sizes of cells prior to and after 
+RLE normalisation.
+
+```{r norm_libsize_plots}
+grid.arrange(norm_qc$libsize_histograms$count, 
+             norm_qc$libsize_histograms$normcount, ncol = 1)
+```
+
+The following plots depict the impact of RLE normalisation on GAPDH counts.
+
+```{r norm_gapdh}
+grid.arrange(norm_qc$sampled_genes$GAPDH$counts,
+             norm_qc$sampled_genes$GAPDH$normcounts, ncol = 1)
+```
+
+The following plots depict the impact of RLE normalisation on MALAT1 counts.
+
+```{r norm_malat1}
+grid.arrange(norm_qc$sampled_genes$MALAT1$counts,
+             norm_qc$sampled_genes$MALAT1$normcounts, ncol = 1)
+```
+
+The following plots depict the impact of RLE normalisation on all gene counts
+from 100 randomly-selected cells.
+
+```{r norm_genescatter}
+grid.arrange(norm_qc$sampled_cell_gene_expression$counts,
+             norm_qc$sampled_cell_gene_expression$normcounts, ncol = 1)
+```
+
+## 5. Control removal
+We can review the top expressors by examining the top gene expression boxplot.
+
+```{r}
+filtered_qc_plots$topgenes_boxplot
+```
+
+As mitochondrial and ribosomal genes still dominate top expression after filtering,
+we should remove them from the dataset so we can observe genes of interest.
+
+```{r exclude_controls}
+# Exclude mitochondrial and ribosomal genes
+norm_set <- excludeControl(norm_set, control = c("Mt", "Rb"))
+```
+
+```{r plotTopGenesNoControls}
+print(plotTopGenesBoxplot(norm_set, n = 20))
+```
+
+## 6. Dimensionality reduction
+Dimensionality reduction is used to reduce the number of variables we have to
+assess which will reduce noise and speed up subesequent analyses. It is also 
+used to visualise the data in 2 or 3 dimensional space.
+
+We will transform our data with Principal Component Analysis (PCA).
+
+```{r reducePCA}
+pca_set <- runPCA(norm_set, ngenes = 1500, scaling = TRUE)
+reducedDim(pca_set, "PCA")[1:5,1:5]
+```
+
+We can observe how much variance each principal component contributes to a 
+dataset using a scree plot. The first PC will contribute the most variance
+to a dataset, but the number of PCs that do contribute variance will differ.
+
+```{r plotPCAVariance}
+plotPCAVariance(pca_set, n = 50)
+```
+
+As previously mentioned, these values can also be used to represent the data
+in two dimensions.
+
+```{r plotPCABatch}
+plotPCA(pca_set, PCX = 1, PCY = 2, group = "batch")
+```
+
+## 7. Clustering
+### 7.1 Using runCORE
+The `runCORE` function generates a distance matrix based on the input and from 
+this, builds a dendrogram. This dendrogram is then cut with the `dynamicTreeCut` 
+algorithm to select clusters from the dendrogram based on the shape and size of 
+the branches. This is repeated again, but this time with the tree-height 
+parameter set to the chosen number of resolutions values ranging from 0 
+(the bottom of the tree) to 1 (the top of the tree).
+
+```{r RunCORE}
+clustered_set <- runCORE(pca_set, 
+                         conservative = FALSE, 
+                         remove_outlier = TRUE,
+                         nres = 40)
+```
+
+`runCORE` generates a series of clustering-related objects, that can be
+accessed as follows:
+
+```{r reviewCORE}
+cluster_analysis <- clusterAnalysis(clustered_set)
+
+# Number of clusters
+cluster_analysis$nClusters
+
+# Rand Index values
+cluster_analysis$keyStats
+```
+
+### 7.2 Visualising clustering results
+The `plotStabilityDendro` and `plotStability` functions allows us to review the
+clustering process by showing other clustering results and their corresponding
+Rand index.
+
+```{r stability_plot}
+plotStabilityDendro(clustered_set)
+```
+
+```{r plotStability}
+plotStability(clustered_set)
+```
+
+`plotDendrogram` generates a cluster-labelled dendrogram that also displays
+the size of each cluster.
+
+```{r plotDendrogram}
+plotDendrogram(clustered_set)
+```
+
+The clustering information can also be shown on plots as the information
+has been added to colInfo.
+
+```{r plotTSNE}
+# Reduce dimensionality with t-SNE
+clustered_set <- runTSNE(clustered_set, PCA = TRUE, 
+                        dimensions = 2, seed = 1, 
+                        perplexity = 30, theta = 0.5)
+
+# Generate a t-SNE plot
+tsne_plot <- plotTSNE(clustered_set, Dim1 = 1, Dim2 = 2, group = "cluster")
+
+# Generate a PCA plot
+pca_plot <- plotPCA(clustered_set, PCX=1, PCY=2, group = "cluster")
+
+# Generate MDS plot
+mds_plot <- plotMDS(clustered_set, Dim1 = 1, Dim2 = 2, group = "cluster")
+
+grid.arrange(tsne_plot, pca_plot, mds_plot, ncol = 3)
+```
+
+## Differential expression
+For differential expression analysis, `ascend` offers wrappers for the DESeq and 
+DESeq2 packages. However, they are not suited for some datasets and systems.
+
+We have introduced another differential expression method on a gene-gene basis, 
+using Likelihood Ratio Tests (LRT) adapted for zero-inflated values. 
+
+```{r LRT}
+cluster1_vs_others <- runDiffExpression(clustered_set, group = "cluster",
+                                        condition.a = 1, condition.b = c(2, 3),
+                                        subsampling = TRUE, ngenes = 1500)
+cluster2_vs_others <- runDiffExpression(clustered_set, group = "cluster",
+                                        condition.a = 2, condition.b = c(1, 3),
+                                        subsampling = TRUE, ngenes = 1500)
+cluster3_vs_others <- runDiffExpression(clustered_set, group = "cluster",
+                                        condition.a = 3, condition.b = c(1, 2),
+                                        subsampling = TRUE, ngenes = 1500)
+
+cluster1_vs_others[1:10, ]
+cluster2_vs_others[1:10, ]
+cluster3_vs_others[1:10, ]
+
 ```
