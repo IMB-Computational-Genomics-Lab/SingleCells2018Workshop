@@ -2,7 +2,11 @@
 title: "Oz Single Cells 2018 Informatics Workshop"
 author: "Anne Senabouth"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: 
+  html_document:
+    html_document
+  md_document:
+    md_document
 vignette: >
   %\VignetteIndexEntry{Oz Single Cells 2018 Informatics Workshop}
   %\VignetteEngine{knitr::rmarkdown}
@@ -27,7 +31,7 @@ cells that have been separated into THY1-positive (Sample 1) and THY1-negative
 
 Please note that this data has been batch equalized with subsampling.
 
-## 2.1 Loading the data into R
+## 1.1 Loading the data into R
 We will be bypassing the manual preparation of the data for this workshop. If 
 you wish to know more about manually loading the data into R, please refer to 
 the `ascend` vignettes.
@@ -41,11 +45,12 @@ has also normalised the dataset via the subsampling method described
 by [Zheng et al. 2016](https://www.nature.com/articles/ncomms14049).
 
 ```{r load_data}
+library(ascend)
 # Set path to data
-data_dir <- "data/iPSC_RGCscRNASeq_PreQC/outs/filtered_gene_bc_matrices_mex/GRCh38p7"
-em_set <- loadCellRanger(data_dir)
+em_set <- loadCellRanger("data/")
 ```
 
+1.2 Exploring the EMSet
 We can review the contents of the EMSet by inputting the variable name of the
 EMSet into the console.
 
@@ -68,19 +73,23 @@ We can review the cell information that is stored in the colInfo slot as follows
 
 ```{r review_colinfo}
 # Cell-related metadata
+print("Using colInfo...")
 colInfo(em_set)
 
 # Cell-related metrics
+print("Using colData...")
 colData(em_set)
 
 # Gene-related metadata
+print("Using rowInfo...")
 rowInfo(em_set)
 
 # Gene-related metrics
+print("Using rowData...")
 rowData(em_set)
 ```
 
-## 3. Quality Control and Filtering
+## 2. Quality Control and Filtering
 This workflow is similar to other scRNA-seq filtering workflows available
 through packages such as `seurat` and `scater`. You can read more about quality 
 control through these links:
@@ -88,7 +97,7 @@ control through these links:
 1. [Analyzing single-cell RNA-seq data containing UMI counts](https://bioconductor.org/packages/release/workflows/vignettes/simpleSingleCell/inst/doc/work-2-umis.html) by Lun, McCarthy & Marioni 2018
 2. [Cleaning the Expression Matrix](https://hemberg-lab.github.io/scRNA.seq.course/cleaning-the-expression-matrix.html#exprs-qc) by Kiselex, Andrews, McCarthy, Buttner & Hemberg 2018
 
-### 3.1 Assessing quality of the dataset
+### 2.1 Assessing quality of the dataset
 First, we will have a look at the quality of the dataset. Some quality control
 metrics were generated when the EMSet was created; they are stored in the
 `rowData` (metrics for genes) and `colData` (metrics for cells) slots. We can
@@ -156,7 +165,7 @@ grid.arrange(qc_plots$control_hists$Mt, qc_plots$control_hists$Rb, ncol = 2)
 grid.arrange(qc_plots$control_violins$Mt, qc_plots$control_violins$Rb, ncol = 1)
 ```
 
-### 3.2 Batch normalisation
+### 2.2 Batch normalisation
 Before we start filtering, we need to normalise the counts between the two 
 batches to account for technical variations. The read counts have already been 
 normalised already via the Cell Ranger pipeline's subsampling method. 
@@ -166,7 +175,7 @@ This batch normalisation method scales UMI counts between batches.
 em_set <- normaliseBatches(em_set)
 ```
 
-### 3.3 Filtering low quality cells from the dataset
+### 2.3 Filtering low quality cells from the dataset
 There are three filtering functions in the `ascend` package. 
 
 1. `filterByOutliers` removes outliers in terms of library size and control
@@ -213,7 +222,7 @@ grid.arrange(filtered_qc_plots$libsize_histogram, filtered_qc_plots$ngenes_hist,
              ncol = 2)
 ```
 
-### 4. Cell-cell normalisation
+### 3. Cell-cell normalisation
 `ascend` offers a normalisation method based on Relative Log Expression. This 
 is the method used by DESeq to normalise counts, but has been adapated for 
 zero-inflated data.
@@ -289,7 +298,7 @@ grid.arrange(norm_qc$sampled_cell_gene_expression$counts,
 
 We have also included a wrapper for `scran`'s deconvolution method.
 
-## 5. Control removal
+## 4. Control removal
 We can review the top expressors by examining the top gene expression boxplot.
 
 ```{r, fig.width = 6, fig.height = 5}
@@ -308,7 +317,7 @@ norm_set <- excludeControl(norm_set, control = c("Mt", "Rb"))
 print(plotTopGenesBoxplot(norm_set, n = 20))
 ```
 
-## 6. Dimensionality reduction
+## 5. Dimensionality reduction
 Dimensionality reduction is used to reduce the number of variables we have to
 assess which will reduce noise and speed up subesequent analyses. It is also 
 used to visualise the data in 2 or 3 dimensional space.
@@ -335,8 +344,8 @@ in two dimensions.
 plotPCA(pca_set, PCX = 1, PCY = 2, group = "batch")
 ```
 
-## 7. Clustering
-### 7.1 Using runCORE
+## 6. Clustering
+### 6.1 Using runCORE
 The `runCORE` function generates a distance matrix based on the input and from 
 this, builds a dendrogram. This dendrogram is then cut with the `dynamicTreeCut` 
 algorithm to select clusters from the dendrogram based on the shape and size of 
@@ -364,7 +373,7 @@ cluster_analysis$nClusters
 cluster_analysis$keyStats
 ```
 
-### 7.2 Visualising clustering results
+### 6.2 Visualising clustering results
 The `plotStabilityDendro` and `plotStability` functions allows us to review the
 clustering process by showing other clustering results and their corresponding
 Rand index.
@@ -414,7 +423,7 @@ pca_plot
 mds_plot
 ```
 
-## Differential expression
+## 7. Differential expression
 For differential expression analysis, `ascend` offers wrappers for the DESeq and 
 DESeq2 packages. However, they are not suited for some datasets and systems.
 
@@ -499,7 +508,7 @@ cluster2_volcano
 cluster3_volcano
 ```
 
-## Branching out with other R packages
+## 8. Branching out with other R packages
 In this tutorial, we covered the main `ascend` workflow that completes the 
 following the tasks:
 
@@ -532,7 +541,6 @@ They provide alternatives for specific stages in the `ascend` workflow and
 provide more in-depth analysis.
 
 #### scran
-
 ##### scran normalisation by deconvolution
 ```{r scran_normalisation}
 scran_normalised <- scranNormalise(filtered_set, quickCluster = FALSE, min_mean = 1e-05)
