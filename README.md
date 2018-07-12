@@ -2,9 +2,10 @@
 ## Oz Single Cells 2018
 By Joseph Powell, Quan Nguyen and Anne Senabouth
 
+Please follow the instructions below to prepare your R environment, before beginning [this vignette](OzSingleCellsWorkshop.md).
+
 ## 1. Preparing the R Environment
-Prior to the workshop, please set up your R environment. Feel free to skip
-some steps if you have already done those steps.
+Feel free to skip some steps if you have already done those steps.
 
 ### 1.1 R installation
 Please follow the R installation instructions [here](https://mirror.aarnet.edu.au/pub/CRAN/).
@@ -114,6 +115,3 @@ register(SnowParam(workers = workers,
                    type = "SOCK", 
                    progressbar = TRUE), default = TRUE)
 ```
-
-## 2. Single cell quality control and analysis of stem cell-derived retinal ganglion cells
-[Click to begin vignette](OzSingleCellsWorkshop.md).
