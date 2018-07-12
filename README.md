@@ -115,5 +115,5 @@ register(SnowParam(workers = workers,
                    progressbar = TRUE), default = TRUE)
 ```
 
-2. Single cell quality control and analysis of stem cell-derived retinal ganglion cells
+## 2. Single cell quality control and analysis of stem cell-derived retinal ganglion cells
 [Click to begin vignette](OzSingleCellsWorkshop.md).
