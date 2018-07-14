@@ -2,7 +2,12 @@
 ## Oz Single Cells 2018
 By Joseph Powell, Quan Nguyen and Anne Senabouth
 
-Please follow the instructions below to prepare your R environment, before beginning [this vignette](OzSingleCellsWorkshop.md).
+1. Before you begin, please download or clone this repository by pressing the "Clone or Download" button on the homepage. This zip file will contain the data you need to follow this workshop.
+2. Follow the instructions below to prepare your R environment.
+3. You can access [the tutorial](OzSingleCellsWorkshop.md) here.
+
+Note:
+There may be issues for some users related to the R package "stringi". This package is a dependancy for some of the packages from Bioconductor. Try installing this package from this website https://cran.r-project.org/web/packages/stringi/index.html.
 
 ## 1. Preparing the R Environment
 Feel free to skip some steps if you have already done those steps.
@@ -63,7 +68,8 @@ You can then install the Bioconductor packages using `biocLite`.
 
 ```{r bioconductor_packages, eval = FALSE}
 bioconductor_packages <- c("Biobase", "BiocGenerics", "BiocParallel",
-                           "SingleCellExperiment", "scater", "scran")
+                           "SingleCellExperiment", "scater", "scran",
+                           "GenomeInfoDb")
 
 biocLite(bioconductor_packages)
 ```
