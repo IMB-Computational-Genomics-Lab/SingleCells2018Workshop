@@ -46,6 +46,11 @@ by [Zheng et al. 2016](https://www.nature.com/articles/ncomms14049).
 
 ```{r load_data}
 library(ascend)
+
+# BiocParallel configuration
+library(BiocParallel)
+ncores <- 3
+register(MulticoreParam(workers = ncores, progressbar=TRUE), default = TRUE)
 # Set path to data
 em_set <- loadCellRanger("data/")
 ```
@@ -452,22 +457,18 @@ discrete model. Secondly, if genes are being expressed, it can be represented
 with a continuous model. The discrete and continuous models are incorporated
 into a combined Likelihood Ratio Test (LRT). Genes with no variance are assumed
 to only have a discrete model.
-
-This method performs analysis on a gene-gene basis and thus is not affected by
-differences in sample sizes. However, as this method only studies gene-gene
-differences, ....
-
+ d
 ```{r LRT}
 # Run combined LRT
 cluster1_vs_others <- runDiffExpression(clustered_set, group = "cluster",
                                         condition.a = 1, condition.b = c(2, 3),
-                                        subsampling = TRUE, ngenes = 1500)
+                                        subsampling = FALSE, ngenes = 1500)
 cluster2_vs_others <- runDiffExpression(clustered_set, group = "cluster",
                                         condition.a = 2, condition.b = c(1, 3),
-                                        subsampling = TRUE, ngenes = 1500)
+                                        subsampling = FALSE, ngenes = 1500)
 cluster3_vs_others <- runDiffExpression(clustered_set, group = "cluster",
                                         condition.a = 3, condition.b = c(1, 2),
-                                        subsampling = TRUE, ngenes = 1500)
+                                        subsampling = FALSE, ngenes = 1500)
 ```
 
 ```{r plotLRT}
@@ -541,6 +542,9 @@ They provide alternatives for specific stages in the `ascend` workflow and
 provide more in-depth analysis.
 
 #### scran
+We used this normalisation method for our publication. This method groups
+the cells into pools for size factor calculation before 
+
 ##### scran normalisation by deconvolution
 ```{r scran_normalisation}
 scran_normalised <- scranNormalise(filtered_set, quickCluster = FALSE, min_mean = 1e-05)
@@ -548,9 +552,10 @@ scran_normalised <- scranNormalise(filtered_set, quickCluster = FALSE, min_mean 
 
 ### DESeq
 ```{r DESeq}
-cluster1_vs_others <- runDESeq(clustered_set, group = "cluster",
-                               condition.a = 1, condition.b = c(2, 3),
+cluster2_vs_others <- runDESeq(clustered_set, group = "cluster",
+                               condition.a = 2, condition.b = c(1, 3),
                                ngenes = 1500)
+plotVolcano(cluster1_vs_others, labels = TRUE)
 ```
 
 ### DESeq2

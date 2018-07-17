@@ -1,7 +1,7 @@
 ---
 title: "Oz Single Cells 2018 Informatics Workshop"
 author: "Anne Senabouth"
-date: "2018-07-12"
+date: "2018-07-17"
 output: 
   html_document:
     html_document
@@ -42,8 +42,16 @@ by [Zheng et al. 2016](https://www.nature.com/articles/ncomms14049).
 
 ```r
 library(ascend)
+
+# BiocParallel configuration
+library(BiocParallel)
+ncores <- 3
+register(MulticoreParam(workers = ncores, progressbar=TRUE), default = TRUE)
 # Set path to data
 em_set <- loadCellRanger("data/")
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
+#> 
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
 ```
 
 1.2 Exploring the EMSet
@@ -343,9 +351,13 @@ This batch normalisation method scales UMI counts between batches.
 ```r
 em_set <- normaliseBatches(em_set)
 #> [1] "Calculating size factors..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "Scaling counts..."
 #> [1] "Storing data in EMSet..."
 #> [1] "Re-calculating QC metrics..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "Batch normalisation complete! Returning object..."
 ```
 
@@ -366,11 +378,22 @@ filtered_set <- filterByOutliers(em_set,
                                  cell.threshold = 3, 
                                  control.threshold = 3)
 #> [1] "Identifying outliers..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
+#> 
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
+#> 
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
+#> 
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
+#> 
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
 
 # Filter out cells based on proportion of control expression
 filtered_set <- filterByControl(filtered_set, control = "Mt", pct.threshold = 20)
 filtered_set <- filterByControl(filtered_set, control = "Rb", pct.threshold = 50)
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
 filtered_set <- filterLowAbundanceGenes(filtered_set, pct.threshold = 1)
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%  |                                                                         |=================================================================| 100%
 ```
 
 We can review which cells and genes were removed from the dataset by reviewing
@@ -397,12 +420,12 @@ str(progressLog(filtered_set))
 #>   ..$ CellsFilteredByMt           : int 36
 #>   ..$ CellsFilteredByRb           : int 9
 #>   ..$ CellsFilteredByMtPct        : int 0
-#>   ..$ CellsFilteredByRbPct        : int 30
-#>   ..$ FilteredLowAbundanceGenes   : int 17330
+#>   ..$ CellsFilteredByRbPct        : int 29
+#>   ..$ FilteredLowAbundanceGenes   : int 17212
 #>  $ filterByControl         :List of 2
 #>   ..$ Mt: list()
-#>   ..$ Rb: chr [1:30] "AACTGGTTCATAAAGG-1" "AAGACCTAGACAATAC-1" "ACCAGTATCGGTTCGG-1" "ACGATACGTCACACGC-1" ...
-#>  $ RemovedLowAbundanceGenes: chr [1:17330] "A1CF" "A2ML1" "A2ML1-AS1" "A2ML1-AS2" ...
+#>   ..$ Rb: chr [1:29] "AACTGGTTCATAAAGG-1" "AAGACCTAGACAATAC-1" "ACCAGTATCGGTTCGG-1" "ACGATACGTCACACGC-1" ...
+#>  $ RemovedLowAbundanceGenes: chr [1:17212] "A1CF" "A2ML1" "A2ML1-AS1" "A2ML1-AS2" ...
 ```
 
 We can also review the impact of QC on the dataset by regenerating the QC plots.
@@ -447,7 +470,11 @@ divided by the calculated normalization factor for the cell.
 ```r
 norm_set <- normaliseByRLE(filtered_set)
 #> [1] "Calculating geometric means..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |======================                                           |  33%  |                                                                         |===========================================                      |  67%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "Calculating normalisation factor..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |======================                                           |  33%  |                                                                         |===========================================                      |  67%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "Scaling counts..."
 #> [1] "Storing normalised counts..."
 ```
@@ -476,13 +503,13 @@ counts(norm_set)[1:5,1:5]
 # Normalised counts
 normcounts(norm_set)[1:5,1:5]
 #>               AAACCTGAGCTGTTCA-1 AAACCTGCAATTCCTT-1 AAACCTGGTCTACCTC-1
-#> FO538757.1             0.0000000           0.244853          0.0000000
-#> AP006222.2             0.2798369           0.000000          0.2248043
-#> RP11-206L10.9          0.0000000           0.000000          0.0000000
-#> LINC00115              0.0000000           0.000000          0.0000000
-#> FAM41C                 0.0000000           0.000000          0.0000000
+#> FO538757.1             0.0000000          0.2825285          0.0000000
+#> AP006222.2             0.2797099          0.0000000          0.2644579
+#> RP11-206L10.9          0.0000000          0.0000000          0.0000000
+#> LINC00115              0.0000000          0.0000000          0.0000000
+#> FAM41C                 0.0000000          0.0000000          0.0000000
 #>               AAACCTGTCGGAGCAA-1 AAACGGGAGTCGATAA-1
-#> FO538757.1                     0          0.3444377
+#> FO538757.1                     0          0.2749356
 #> AP006222.2                     0          0.0000000
 #> RP11-206L10.9                  0          0.0000000
 #> LINC00115                      0          0.0000000
@@ -491,13 +518,13 @@ normcounts(norm_set)[1:5,1:5]
 # Log2(counts) + 1
 logcounts(norm_set)[1:5, 1:5]
 #>               AAACCTGAGCTGTTCA-1 AAACCTGCAATTCCTT-1 AAACCTGGTCTACCTC-1
-#> FO538757.1               0.00000          0.3159754          0.0000000
-#> AP006222.2               0.35596          0.0000000          0.2925513
-#> RP11-206L10.9            0.00000          0.0000000          0.0000000
-#> LINC00115                0.00000          0.0000000          0.0000000
-#> FAM41C                   0.00000          0.0000000          0.0000000
+#> FO538757.1             0.0000000          0.3589909           0.000000
+#> AP006222.2             0.3558168          0.0000000           0.338519
+#> RP11-206L10.9          0.0000000          0.0000000           0.000000
+#> LINC00115              0.0000000          0.0000000           0.000000
+#> FAM41C                 0.0000000          0.0000000           0.000000
 #>               AAACCTGTCGGAGCAA-1 AAACGGGAGTCGATAA-1
-#> FO538757.1                     0          0.4270029
+#> FO538757.1                     0          0.3504243
 #> AP006222.2                     0          0.0000000
 #> RP11-206L10.9                  0          0.0000000
 #> LINC00115                      0          0.0000000
@@ -509,8 +536,11 @@ We can generate some plots to review the impact of normalisation on the dataset.
 
 ```r
 norm_qc <- plotNormQC(norm_set)
+#>   |                                                                         |                                                                 |   0%  |                                                                         |================================                                 |  50%
 #> [1] "Plotting GAPDH expression..."
+#>   |                                                                         |=================================================================| 100%
 #> [1] "Plotting MALAT1 expression..."
+#> 
 #> [1] "Plotting gene expression box plots..."
 ```
 
@@ -598,11 +628,11 @@ pca_set <- runPCA(norm_set, ngenes = 1500, scaling = TRUE)
 #> [1] "PCA complete! Loading PCA into EMSet..."
 reducedDim(pca_set, "PCA")[1:5,1:5]
 #>                          PC1        PC2        PC3       PC4        PC5
-#> AAACCTGAGCTGTTCA-1  6.204334 -1.6281152  2.8726863 -4.036877  2.2084668
-#> AAACCTGCAATTCCTT-1 19.811011  0.7822773  0.5806704  2.406687 -0.9392580
-#> AAACCTGGTCTACCTC-1 -3.731646  2.4602419 -2.8501564  7.405031 -1.1189194
-#> AAACCTGTCGGAGCAA-1 18.478563 -0.0184362  1.3187185  1.221498 -1.3488342
-#> AAACGGGAGTCGATAA-1 12.726645 -0.1389756 -0.5043133  3.052412  0.2543215
+#> AAACCTGAGCTGTTCA-1  5.981053 -1.5819663  2.7659207 -3.866405  2.1624718
+#> AAACCTGCAATTCCTT-1 19.728636  0.6913078  0.4654700  2.509744 -0.9110175
+#> AAACCTGGTCTACCTC-1 -3.853559  2.0534298 -3.2331363  7.292717 -1.6735128
+#> AAACCTGTCGGAGCAA-1 18.650776  0.1556006  1.2830011  1.390305 -1.4029335
+#> AAACGGGAGTCGATAA-1 12.538416 -0.3576140 -0.5896934  3.218731  0.2581786
 ```
 
 We can observe how much variance each principal component contributes to a 
@@ -644,14 +674,12 @@ clustered_set <- runCORE(pca_set,
 #> [1] "Calculating distance matrix..."
 #> [1] "Generating hclust object..."
 #> [1] "Using dynamicTreeCut to generate reference set of clusters..."
-#> Found more than one class "dist" in cache; using the first, from namespace 'BiocGenerics'
-#> Also defined by 'spam'
-#> Found more than one class "dist" in cache; using the first, from namespace 'BiocGenerics'
-#> Also defined by 'spam'
-#> Found more than one class "dist" in cache; using the first, from namespace 'BiocGenerics'
-#> Also defined by 'spam'
 #> [1] "Checking if outliers are present..."
 #> [1] "Generating clusters by running dynamicTreeCut at different heights..."
+#> Warning in split.default(windows, 1:nworkers): data length is not a
+#> multiple of split variable
+#>   |                                                                         |                                                                 |   0%  |                                                                         |======================                                           |  33%  |                                                                         |===========================================                      |  67%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "Calculating rand indices..."
 #> [1] "Calculating stability values..."
 #> [1] "Aggregating data..."
@@ -673,46 +701,46 @@ cluster_analysis$nClusters
 # Rand Index values
 cluster_analysis$keyStats
 #>    Height Stability RandIndex ConsecutiveRI ClusterCount
-#> 1   0.025     0.225 1.0000000     1.0000000            7
-#> 2    0.05     0.225 1.0000000     1.0000000            7
-#> 3   0.075     0.225 1.0000000     1.0000000            7
-#> 4     0.1     0.225 1.0000000     1.0000000            7
-#> 5   0.125     0.225 1.0000000     1.0000000            7
-#> 6    0.15     0.225 1.0000000     1.0000000            7
-#> 7   0.175     0.225 1.0000000     1.0000000            7
-#> 8     0.2     0.225 1.0000000     1.0000000            7
-#> 9   0.225     0.225 1.0000000     1.0000000            7
-#> 10   0.25     0.025 0.9463405     0.9463405            6
-#> 11  0.275     0.025 0.9463405     1.0000000            6
-#> 12    0.3     0.025 0.5185170     0.5608300            5
-#> 13  0.325     0.025 0.5185170     1.0000000            5
-#> 14   0.35     0.025 0.5154509     0.9960010            4
-#> 15  0.375     0.075 0.5154509     1.0000000            4
-#> 16    0.4     0.075 0.5154509     1.0000000            4
-#> 17  0.425     0.075 0.5154509     1.0000000            4
-#> 18   0.45     0.025 0.4669202     0.9345679            3
-#> 19  0.475     0.200 0.4669202     1.0000000            3
-#> 20    0.5     0.200 0.4669202     1.0000000            3
-#> 21  0.525     0.200 0.4669202     1.0000000            3
-#> 22   0.55     0.200 0.4669202     1.0000000            3
-#> 23  0.575     0.200 0.4669202     1.0000000            3
-#> 24    0.6     0.200 0.4669202     1.0000000            3
-#> 25  0.625     0.200 0.4669202     1.0000000            3
-#> 26   0.65     0.200 0.4669202     1.0000000            3
-#> 27  0.675     0.025 0.4526620     0.9798678            2
-#> 28    0.7     0.325 0.4526620     1.0000000            2
-#> 29  0.725     0.325 0.4526620     1.0000000            2
-#> 30   0.75     0.325 0.4526620     1.0000000            2
-#> 31  0.775     0.325 0.4526620     1.0000000            2
-#> 32    0.8     0.325 0.4526620     1.0000000            2
-#> 33  0.825     0.325 0.4526620     1.0000000            2
-#> 34   0.85     0.325 0.4526620     1.0000000            2
-#> 35  0.875     0.325 0.4526620     1.0000000            2
-#> 36    0.9     0.325 0.4526620     1.0000000            2
-#> 37  0.925     0.325 0.4526620     1.0000000            2
-#> 38   0.95     0.325 0.4526620     1.0000000            2
-#> 39  0.975     0.325 0.4526620     1.0000000            2
-#> 40      1     0.325 0.4526620     1.0000000            2
+#> 1   0.025     0.250 1.0000000     1.0000000            5
+#> 2    0.05     0.250 1.0000000     1.0000000            5
+#> 3   0.075     0.250 1.0000000     1.0000000            5
+#> 4     0.1     0.250 1.0000000     1.0000000            5
+#> 5   0.125     0.250 1.0000000     1.0000000            5
+#> 6    0.15     0.250 1.0000000     1.0000000            5
+#> 7   0.175     0.250 1.0000000     1.0000000            5
+#> 8     0.2     0.250 1.0000000     1.0000000            5
+#> 9   0.225     0.250 1.0000000     1.0000000            5
+#> 10   0.25     0.250 1.0000000     1.0000000            5
+#> 11  0.275     0.025 0.9029543     0.9029543            4
+#> 12    0.3     0.025 0.9029543     1.0000000            4
+#> 13  0.325     0.025 0.8942298     0.9911850            3
+#> 14   0.35     0.250 0.8942298     1.0000000            3
+#> 15  0.375     0.250 0.8942298     1.0000000            3
+#> 16    0.4     0.250 0.8942298     1.0000000            3
+#> 17  0.425     0.250 0.8942298     1.0000000            3
+#> 18   0.45     0.250 0.8942298     1.0000000            3
+#> 19  0.475     0.250 0.8942298     1.0000000            3
+#> 20    0.5     0.250 0.8942298     1.0000000            3
+#> 21  0.525     0.250 0.8942298     1.0000000            3
+#> 22   0.55     0.250 0.8942298     1.0000000            3
+#> 23  0.575     0.250 0.8942298     1.0000000            3
+#> 24    0.6     0.025 0.2304299     0.2773806            2
+#> 25  0.625     0.400 0.2304299     1.0000000            2
+#> 26   0.65     0.400 0.2304299     1.0000000            2
+#> 27  0.675     0.400 0.2304299     1.0000000            2
+#> 28    0.7     0.400 0.2304299     1.0000000            2
+#> 29  0.725     0.400 0.2304299     1.0000000            2
+#> 30   0.75     0.400 0.2304299     1.0000000            2
+#> 31  0.775     0.400 0.2304299     1.0000000            2
+#> 32    0.8     0.400 0.2304299     1.0000000            2
+#> 33  0.825     0.400 0.2304299     1.0000000            2
+#> 34   0.85     0.400 0.2304299     1.0000000            2
+#> 35  0.875     0.400 0.2304299     1.0000000            2
+#> 36    0.9     0.400 0.2304299     1.0000000            2
+#> 37  0.925     0.400 0.2304299     1.0000000            2
+#> 38   0.95     0.400 0.2304299     1.0000000            2
+#> 39  0.975     0.400 0.2304299     1.0000000            2
+#> 40      1     0.400 0.2304299     1.0000000            2
 ```
 
 ### 6.2 Visualising clustering results
@@ -812,7 +840,7 @@ print("Cells per batch")
 table(col_info$batch)
 #> 
 #>    1    2 
-#> 1050  192
+#> 1010  188
 
 # Cluster numbers
 print("Cells per cluster")
@@ -820,7 +848,7 @@ print("Cells per cluster")
 table(col_info$cluster)
 #> 
 #>   1   2   3 
-#> 839 383  20
+#> 656 428 114
 ```
 
 This dataset is unbalanced as the two batches and three clusters
@@ -836,31 +864,33 @@ discrete model. Secondly, if genes are being expressed, it can be represented
 with a continuous model. The discrete and continuous models are incorporated
 into a combined Likelihood Ratio Test (LRT). Genes with no variance are assumed
 to only have a discrete model.
-
-This method performs analysis on a gene-gene basis and thus is not affected by
-differences in sample sizes. However, as this method only studies gene-gene
-differences, ....
-
+ d
 
 ```r
 # Run combined LRT
 cluster1_vs_others <- runDiffExpression(clustered_set, group = "cluster",
                                         condition.a = 1, condition.b = c(2, 3),
-                                        subsampling = TRUE, ngenes = 1500)
+                                        subsampling = FALSE, ngenes = 1500)
 #> [1] "Identifying genes to retain..."
 #> [1] "Running LRT..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |======================                                           |  33%  |                                                                         |===========================================                      |  67%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "LRT complete! Returning results..."
 cluster2_vs_others <- runDiffExpression(clustered_set, group = "cluster",
                                         condition.a = 2, condition.b = c(1, 3),
-                                        subsampling = TRUE, ngenes = 1500)
+                                        subsampling = FALSE, ngenes = 1500)
 #> [1] "Identifying genes to retain..."
 #> [1] "Running LRT..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |======================                                           |  33%  |                                                                         |===========================================                      |  67%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "LRT complete! Returning results..."
 cluster3_vs_others <- runDiffExpression(clustered_set, group = "cluster",
                                         condition.a = 3, condition.b = c(1, 2),
-                                        subsampling = TRUE, ngenes = 1500)
+                                        subsampling = FALSE, ngenes = 1500)
 #> [1] "Identifying genes to retain..."
 #> [1] "Running LRT..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |======================                                           |  33%  |                                                                         |===========================================                      |  67%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "LRT complete! Returning results..."
 ```
 
@@ -945,11 +975,16 @@ They provide alternatives for specific stages in the `ascend` workflow and
 provide more in-depth analysis.
 
 #### scran
+We used this normalisation method for our publication. This method groups
+the cells into pools for size factor calculation before 
+
 ##### scran normalisation by deconvolution
 
 ```r
 scran_normalised <- scranNormalise(filtered_set, quickCluster = FALSE, min_mean = 1e-05)
-#> [1] "1242 cells detected. Running computeSumFactors with preset sizes of 40, 60, 80, 100..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |=================================================================| 100%
+#> 
+#> [1] "1198 cells detected. Running computeSumFactors with preset sizes of 40, 60, 80, 100..."
 #> [1] "scran's computeSumFactors complete. Adjusting zero sum factors..."
 #> [1] "Running scater's normalize method..."
 #> [1] "Normalisation complete. Converting SingleCellExperiment back to EMSet..."
@@ -958,13 +993,20 @@ scran_normalised <- scranNormalise(filtered_set, quickCluster = FALSE, min_mean 
 ### DESeq
 
 ```r
-cluster1_vs_others <- runDESeq(clustered_set, group = "cluster",
-                               condition.a = 1, condition.b = c(2, 3),
+cluster2_vs_others <- runDESeq(clustered_set, group = "cluster",
+                               condition.a = 2, condition.b = c(1, 3),
                                ngenes = 1500)
 #> [1] "Identifying genes to retain..."
 #> [1] "Running DESeq..."
+#>   |                                                                         |                                                                 |   0%  |                                                                         |======================                                           |  33%  |                                                                         |===========================================                      |  67%  |                                                                         |=================================================================| 100%
+#> 
 #> [1] "DESeq complete! Adjusting results..."
+#> Warning in runDESeq(clustered_set, group = "cluster", condition.a = 2,
+#> condition.b = c(1, : NaNs produced
+plotVolcano(cluster1_vs_others, labels = TRUE)
 ```
+
+![plot of chunk DESeq](figure/DESeq-1.png)
 
 ### DESeq2
 DESeq2 requires more time than allowed for this workshop, so we will not run it.

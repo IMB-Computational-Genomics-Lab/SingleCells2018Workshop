@@ -63,7 +63,7 @@ You can then install the Bioconductor packages using `biocLite`.
 
 ```{r bioconductor_packages, eval = FALSE}
 bioconductor_packages <- c("Biobase", "BiocGenerics", "BiocParallel",
-                           "SingleCellExperiment", "scater", "scran")
+                           "SingleCellExperiment", "GenomeInfoDb", "GenomeInfoDbData")
 
 biocLite(bioconductor_packages)
 ```
