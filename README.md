@@ -1,5 +1,5 @@
 # Single Cell Informatics Workshop
-## Oz Single Cells 2018
+## Single Cells 2018
 By Joseph Powell, Quan Nguyen and Anne Senabouth
 
 1. Before you begin, please download or clone this repository by pressing the "Clone or Download" button on the homepage. This zip file will contain the data you need to follow this workshop.
