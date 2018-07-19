@@ -4,7 +4,7 @@ By Joseph Powell, Quan Nguyen and Anne Senabouth
 
 1. Before you begin, please download or clone this repository by pressing the "Clone or Download" button on the homepage. This zip file will contain the data you need to follow this workshop.
 2. Follow the instructions below to prepare your R environment.
-3. You can access [the tutorial](OzSingleCellsWorkshop.md) here.
+3. You can access [the tutorial](SingleCellsWorkshop.md) here.
 
 Note:
 There may be issues for some users related to the R package "stringi". This package is a dependancy for some of the packages from Bioconductor. Try installing this package from this website https://cran.r-project.org/web/packages/stringi/index.html.
